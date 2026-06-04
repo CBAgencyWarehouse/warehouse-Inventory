@@ -173,29 +173,50 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col min-w-0">
         
         {/* TOP HEADER */}
-        <header className="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-6 md:px-8 z-10">
-          <div className="flex items-center gap-4 flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search inventory, SKU, bin locations or event requests..." 
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-              />
-            </div>
-          </div>
+        <header className="h-20 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 md:px-8 z-10">
+  <div className="flex items-center gap-4 flex-1 max-w-md">
+    <div className="relative w-full">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+      <input 
+        type="text" 
+        placeholder="Search inventory, SKU, bin locations or event requests..." 
+        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+      />
+    </div>
+  </div>
 
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-all">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-rose-500 rounded-full"></span>
-            </button>
-            <div className="h-8 w-px bg-slate-200"></div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-blue-600/10 transition-all">
-              <Plus className="h-4 w-4" /> New Intake
-            </button>
-          </div>
-        </header>
+  <div className="flex items-center gap-2 md:gap-4">
+    {/* MOBILE ONLY LOGOUT BUTTON */}
+    <button 
+      onClick={handleLogout}
+      disabled={isLoggingOut}
+      className={`p-2 rounded-xl border transition-all md:hidden ${
+        isLoggingOut 
+          ? 'text-slate-400 bg-slate-100 border-slate-200 cursor-not-allowed' 
+          : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50 border-slate-200 active:scale-95'
+      }`}
+      title="Log out"
+      aria-label="Log out"
+    >
+      {isLoggingOut ? (
+        <Loader2 className="h-4 w-4 animate-spin text-rose-500" />
+      ) : (
+        <LogOut className="h-4 w-4" />
+      )}
+    </button>
+
+    <button className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-all">
+      <Bell className="h-5 w-5" />
+      <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-rose-500 rounded-full"></span>
+    </button>
+    
+    <div className="h-8 w-px bg-slate-200"></div>
+    
+    <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-blue-600/10 transition-all">
+      <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New Intake</span>
+    </button>
+  </div>
+</header>
 
         {/* WORKSPACE CONTAINER */}
         <div className="p-6 md:p-8 space-y-8 flex-1 overflow-y-auto">
