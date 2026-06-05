@@ -7,15 +7,41 @@ import { Package, ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [role, setRole] = useState<'client' | 'warehouse'>('client');
-  
-  // فارم اسٹیٹس
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // لاگ ان سبمٹ ہینڈلر
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  // ✅ Admin ke liye alag handler
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Admin login failed.");
+        return;
+      }
+
+      window.location.href = '/dashboard/admin';
+    } catch (err) {
+      setError("Failed to connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Client ke liye alag handler
+  const handleClientLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -32,7 +58,6 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data.error || "Invalid email or password.");
       } else {
-        // لاگ ان کامیاب ہونے پر ڈیش بورڈ پر بھیجیں
         window.location.href = '/dashboard';
       }
     } catch (err) {
@@ -42,16 +67,23 @@ export default function LoginPage() {
     }
   };
 
+  // ✅ Role ke hisaab se sahi handler choose karo
+  const handleSubmit = (e: React.FormEvent) => {
+    if (role === 'warehouse') {
+      handleAdminLogin(e);
+    } else {
+      handleClientLogin(e);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       
-      {/* LEFT SIDE: PREMIUM BRANDING & WORKFLOW INFOGRAPHIC */}
+      {/* LEFT SIDE */}
       <div className="md:w-1/2 bg-slate-900 text-white p-8 md:p-16 flex flex-col justify-between relative overflow-hidden">
-        {/* Abstract Background Light */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
 
-        {/* Top Logo Area */}
         <div className="flex items-center gap-3 relative z-10">
           <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20">
             <Package className="h-6 w-6" />
@@ -62,7 +94,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Center Content / Workflow Value Proposition */}
         <div className="my-auto py-12 relative z-10 max-w-md">
           <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-full uppercase tracking-wider">
             Enterprise Logistics
@@ -73,8 +104,6 @@ export default function LoginPage() {
           <p className="text-slate-400 text-sm mt-3 leading-relaxed">
             Streamlining inventory intake, 2-week event buffers, round-trip tracking, and automated fulfillment workflows for Experian teams.
           </p>
-
-          {/* Quick Checklist */}
           <div className="mt-8 space-y-3">
             <div className="flex items-center gap-3 text-sm text-slate-300">
               <ShieldCheck className="h-5 w-5 text-emerald-400 shrink-0" />
@@ -87,27 +116,25 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Bottom Footer Text */}
         <div className="text-xs text-slate-500 relative z-10">
           &copy; 2026 CB Logistics Ecosystem. All rights reserved.
         </div>
       </div>
 
-      {/* RIGHT SIDE: CLEAN LOGIN FORM */}
+      {/* RIGHT SIDE */}
       <div className="flex-1 bg-white p-8 md:p-16 flex items-center justify-center">
         <div className="w-full max-w-sm space-y-8">
           
-          {/* Header Description */}
           <div>
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome Back</h2>
             <p className="text-sm text-slate-500 mt-1.5">Sign in to manage your events or track assets.</p>
           </div>
 
-          {/* ROLE SELECTOR TABS (Experian vs Warehouse Admin) */}
+          {/* ROLE TABS */}
           <div className="p-1 bg-slate-100 border border-slate-200/60 rounded-xl flex">
             <button
               type="button"
-              onClick={() => setRole('client')}
+              onClick={() => { setRole('client'); setError(''); }}
               className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                 role === 'client' 
                   ? 'bg-white text-slate-900 shadow-sm' 
@@ -118,7 +145,7 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => setRole('warehouse')}
+              onClick={() => { setRole('warehouse'); setError(''); }}
               className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                 role === 'warehouse' 
                   ? 'bg-white text-slate-900 shadow-sm' 
@@ -129,17 +156,15 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Error Alert Box */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-medium">
               {error}
             </div>
           )}
 
-          {/* FORM */}
-          <form className="space-y-5" onSubmit={handleLoginSubmit}>
+          {/* ✅ onSubmit ab handleSubmit call karta hai jo role dekh ke decide karta hai */}
+          <form className="space-y-5" onSubmit={handleSubmit}>
             
-            {/* Email Field */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 block">Username / Email Address</label>
               <div className="relative">
@@ -155,7 +180,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-700 block">Password</label>
@@ -174,7 +198,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me Toggle */}
             <div className="flex items-center">
               <input 
                 id="remember-me" 
@@ -186,18 +209,26 @@ export default function LoginPage() {
               </label>
             </div>
 
-            {/* Submit Button */}
+            {/* ✅ Button text role ke hisaab se change hota hai */}
             <button 
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm shadow-blue-600/10 flex items-center justify-center gap-2 group transition-all mt-2 disabled:opacity-50"
+              className={`w-full py-2.5 text-white rounded-xl text-sm font-semibold shadow-sm flex items-center justify-center gap-2 group transition-all mt-2 disabled:opacity-50 ${
+                role === 'warehouse'
+                  ? 'bg-slate-800 hover:bg-slate-900 shadow-slate-800/10'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/10'
+              }`}
             >
-              {loading ? "Signing In..." : "Sign In to Dashboard"}
+              {loading
+                ? "Signing In..."
+                : role === 'warehouse'
+                  ? "Admin Panel Login"
+                  : "Sign In to Dashboard"
+              }
               {!loading && <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />}
             </button>
           </form>
 
-          {/* SIGN UP REDIRECT LINK */}
           <div className="text-center pt-1 border-t border-slate-100">
             <p className="text-xs text-slate-500">
               New to the platform?{" "}
@@ -210,11 +241,19 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Experian Setup Notice */}
+          {/* ✅ Role ke hisaab se alag notice */}
           {role === 'client' && (
             <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-xl mt-4">
               <p className="text-[10px] text-blue-800 leading-relaxed font-medium">
                 <strong>New Experian User?</strong> Code BLK will register you directly. Click the <strong>Activate Account</strong> link above with your pre-generated email to get started.
+              </p>
+            </div>
+          )}
+
+          {role === 'warehouse' && (
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl mt-4">
+              <p className="text-[10px] text-slate-700 leading-relaxed font-medium">
+                <strong>Admin Access:</strong> CB Warehouse credentials use a separate authentication endpoint. Successful login redirects to <strong>/dashboard/admin</strong>.
               </p>
             </div>
           )}

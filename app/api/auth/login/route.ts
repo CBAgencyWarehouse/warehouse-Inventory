@@ -4,10 +4,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { SignJWT } from 'jose';
 
-// JWT کی خفیہ کی (Secret Key) جو .env میں ہونی چاہیے
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-fallback-super-secret-key-change-this'
-);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +14,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    // 1. یوزر کو ڈیٹا بیس میں تلاش کریں
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() }
     });
@@ -26,23 +22,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    // 2. پاسورڈ میچ کریں
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    // 3. سیکیور JWT ٹوکن تیار کریں (اس میں یوزر کی معلومات سیو کریں)
+    // ✅ ADMIN ko client portal use karne se rokna
+    if (user.role === "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin accounts must use the Admin login." },
+        { status: 403 }
+      );
+    }
+    
+    if (!user.isActivated) {
+      return NextResponse.json(
+        { error: "Your account is not activated yet. Please contact admin." },
+        { status: 403 }
+      );
+    }
+
     const token = await new SignJWT({ 
       userId: user.id, 
       email: user.email, 
       role: user.role 
     })
       .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d') // 7 دن کے لیے لاگ ان رہے گا
+      .setExpirationTime('7d')
       .sign(JWT_SECRET);
 
-    // 4. ٹوکن کو HttpOnly کوکی میں سیٹ کر کے رسپانس بھیجیں
     const response = NextResponse.json({ 
       message: "Login successful!",
       user: { email: user.email, role: user.role, name: user.name }
@@ -51,11 +59,11 @@ export async function POST(request: Request) {
     response.cookies.set({
       name: 'auth_token',
       value: token,
-      httpOnly: true, // جاوا اسکرپٹ اس ٹوکن کو چوری نہیں کر سکتی (XSS پروٹیکشن)
-      secure: process.env.NODE_ENV === 'production', // پروڈکشن پر صرف HTTPS پر چلے گا
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 دن سیشن برقرار رہے گا
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
