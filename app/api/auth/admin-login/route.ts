@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import { SignJWT } from "jose";
+import nodemailer from "nodemailer";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +18,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // find user
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -28,8 +29,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // password check
     const isValid = await bcrypt.compare(password, user.password);
+
     if (!isValid) {
       return NextResponse.json(
         { error: "Invalid credentials" },
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🚨 ONLY ADMIN ALLOWED
+    // 🚨 ONLY ADMIN
     if (user.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Access denied. Admin only." },
@@ -45,32 +46,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // JWT
-    const token = await new SignJWT({
-      userId: user.id,
+    // 🔐 OTP GENERATE
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { email: user.email },
+      data: {
+        otp,
+        otpExpiry,
+      },
+    });
+
+    // 📩 EMAIL SEND
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Admin Login OTP",
+      html: `<h2>Your Admin OTP is: ${otp}</h2><p>Valid for 5 minutes</p>`,
+    });
+
+    return NextResponse.json({
+      message: "OTP sent to admin email",
       email: user.email,
-      role: user.role,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("7d")
-      .sign(JWT_SECRET);
-
-    const response = NextResponse.json({
-      message: "Admin login successful",
-      user: { email: user.email, role: user.role, name: user.name },
     });
-
-    response.cookies.set({
-      name: "auth_token",
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return response;
   } catch (error) {
     return NextResponse.json(
       { error: "Server error" },

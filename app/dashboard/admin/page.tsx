@@ -99,10 +99,18 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const handleLogout = () => {
-    document.cookie = "auth_token=; Max-Age=0; path=/";
-    window.location.href = "/login";
-  };
+  const handleLogout = async () => {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include", // cookie send کرنے کیلئے
+    });
+
+    window.location.href = "/auth/login";
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+};
 
   const filteredShipments = SHIPMENTS.filter(s =>
     s.client.toLowerCase().includes(search.toLowerCase()) ||

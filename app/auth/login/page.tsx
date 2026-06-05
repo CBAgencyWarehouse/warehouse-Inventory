@@ -32,7 +32,7 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.href = '/dashboard/admin';
+      window.location.href = `/verify-otp/admin?email=${email}`;
     } catch (err) {
       setError("Failed to connect to server.");
     } finally {
@@ -58,7 +58,7 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data.error || "Invalid email or password.");
       } else {
-        window.location.href = '/dashboard';
+        window.location.href = `/verify-otp?email=${email}`;
       }
     } catch (err) {
       setError("Failed to connect to server. Please try again.");

@@ -1,75 +1,108 @@
-// app/api/auth/login/route.ts
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/prisma';
-import { SignJWT } from 'jose';
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import prisma from "@/lib/prisma";
+import nodemailer from "nodemailer";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required." },
+        { status: 400 }
+      );
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() }
+      where: { email: email.toLowerCase().trim() },
     });
 
     if (!user || !user.password) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password." },
+        { status: 401 }
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password." },
+        { status: 401 }
+      );
     }
 
-    // ✅ ADMIN ko client portal use karne se rokna
+    // ❌ Admin block (optional for OTP flow)
     if (user.role === "ADMIN") {
       return NextResponse.json(
-        { error: "Admin accounts must use the Admin login." },
+        { error: "Admin must use admin login." },
         { status: 403 }
       );
     }
-    
+
     if (!user.isActivated) {
       return NextResponse.json(
-        { error: "Your account is not activated yet. Please contact admin." },
+        { error: "Account not activated." },
         { status: 403 }
       );
     }
 
-    const token = await new SignJWT({ 
-      userId: user.id, 
-      email: user.email, 
-      role: user.role 
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(JWT_SECRET);
+    // ==============================
+    // 🔐 OTP GENERATION
+    // ==============================
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 min
 
-    const response = NextResponse.json({ 
-      message: "Login successful!",
-      user: { email: user.email, role: user.role, name: user.name }
-    }, { status: 200 });
-
-    response.cookies.set({
-      name: 'auth_token',
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
+    await prisma.user.update({
+      where: { email: user.email },
+      data: {
+        otp,
+        otpExpiry,
+      },
     });
 
-    return response;
+    // ==============================
+    // 📩 EMAIL SEND
+    // ==============================
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Your Login OTP Code",
+      html: `
+        <div style="font-family:Arial;padding:20px">
+          <h2>Login Verification</h2>
+          <p>Your OTP code is:</p>
+          <h1 style="letter-spacing:4px;color:#2563eb">${otp}</h1>
+          <p>This code will expire in <b>5 minutes</b>.</p>
+        </div>
+      `,
+    });
+
+    // ==============================
+    // RESPONSE (NO JWT YET)
+    // ==============================
+    return NextResponse.json({
+      message: "OTP sent to your email",
+      email: user.email,
+    });
   } catch (error) {
     console.error("LOGIN_ROUTE_ERROR:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

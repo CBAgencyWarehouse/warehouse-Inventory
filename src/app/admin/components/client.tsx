@@ -8,6 +8,7 @@ import {
   Calendar, DollarSign, RotateCcw, FileText, Eye,
   Building2, Badge
 } from "lucide-react";
+import AddClient from "./addClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ClientStatus = "Active" | "Inactive" | "Pending Setup";
@@ -187,6 +188,10 @@ const avatarColor = (id: string) => {
 
 // ─── Drawer Component ─────────────────────────────────────────────────────────
 function ClientDrawer({ client, onClose }: { client: Client; onClose: () => void }) {
+  
+  
+
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
@@ -320,6 +325,7 @@ export default function ClientsPanel() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | ClientStatus>("All");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [showAddClient, setShowAddClient] = useState(false);
 
   const filtered = CLIENTS.filter(c => {
     const matchSearch =
@@ -351,9 +357,20 @@ export default function ClientsPanel() {
           <h3 className="text-base font-bold text-slate-900">All Clients</h3>
           <p className="text-xs text-slate-400 mt-0.5">{CLIENTS.length} registered Experian contacts</p>
         </div>
-        <button className="flex items-center gap-1.5 text-xs text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-xl transition-all font-semibold">
-          <Plus className="h-3.5 w-3.5" /> Add Client
-        </button>
+        <button
+  onClick={() => setShowAddClient(true)}
+  className="flex items-center gap-1.5 text-xs text-white bg-slate-900 hover:bg-slate-800 px-3.5 py-2 rounded-xl transition-all font-semibold"
+>
+  <Plus className="h-3.5 w-3.5" /> Add Client
+</button>{showAddClient && (
+  <AddClient
+    onClose={() => setShowAddClient(false)}
+    onSuccess={() => {
+      // optional: refresh data later
+      setShowAddClient(false);
+    }}
+  />
+)}
       </div>
 
       {/* Filter Tabs + Search */}
