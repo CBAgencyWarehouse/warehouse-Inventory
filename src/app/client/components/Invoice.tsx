@@ -38,7 +38,7 @@ export default function ExperianInvoiceGenerator() {
   const [eventDate, setEventDate] = useState("2026-06-25"); // Mock future date
 
   // Interactive Form States
-  const [quantities, setQuantities] = useState({
+  const [quantities, setQuantities] = useState<Record<string, number>>({
     "item-1": 2, // Default quantities matching your sample
     "item-2": 10,
     "item-3": 0,
@@ -47,7 +47,7 @@ export default function ExperianInvoiceGenerator() {
   const [extraHours, setExtraHours] = useState(2);
 
   // Handle Qty Changes safely
-  const updateQty = (id, delta) => {
+  const updateQty = (id: string, delta: number) => {
     setQuantities((prev) => ({
       ...prev,
       [id]: Math.max(0, (prev[id] || 0) + delta),

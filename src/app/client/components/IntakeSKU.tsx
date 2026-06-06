@@ -69,7 +69,7 @@ export default function IntakeSKU() {
   }, [skus, searchTerm]);
 
   // Handle Form Submission
-  const handleAddSku = (e) => {
+  const handleAddSku = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSku.name || !newSku.stock) return;
 
@@ -87,7 +87,7 @@ export default function IntakeSKU() {
   };
 
   // Delete Action
-  const handleDelete = (id) => {
+  const handleDelete = (id: string) => {
     setSkus(skus.filter((item) => item.id !== id));
   };
 
@@ -251,7 +251,7 @@ export default function IntakeSKU() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
                     No matching items found.
                   </td>
                 </tr>
