@@ -109,6 +109,5 @@ export const config = {
     "/auth/login",
     "/auth/signup",
     "/verify-otp",
-    "/api/:path*", // Taaki saari APIs is middleware se guzrein
   ],
 };
