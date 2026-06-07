@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
     // JWT GENERATE (ALL USERS SAME FLOW)
     const token = await new SignJWT({
-      userId: user.id,
+      id: user.id,
       email: user.email,
       role: user.role,
     })

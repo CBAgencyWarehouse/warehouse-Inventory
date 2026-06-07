@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Package,
   Truck,
@@ -10,16 +9,16 @@ import {
   Layers,
   LogOut,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 
-import DashboardContent from "@/src/app/client/components/DashboardContent";
-import ShippingRequests from "@/src/app/client/components/ShippingRequests";
-import IntakeSKU from "@/src/app/client/components/IntakeSKU";
-import ReturnsAudits from "@/src/app/client/components/ReturnsAudits";
-import Invoice from "@/src/app/client/components/Invoice";
+import DashboardContent from "@/src/app/team/DashboardContent"; //overview
+import ShippingRequests from "@/src/app/team/ShippingRequests"; // approved shipping
+import IntakeSKU from "@/src/app/team/IntakeSKU";  //inventory intake
+import ReturnsAudits from "@/src/app/team/ReturnsAudits"; // return verification 
+import Invoice from "@/src/app/team/Invoice"; //billing logs
 
-export default function Page() {
-  const router = useRouter();
+export default function CBPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
 
@@ -34,8 +33,7 @@ export default function Page() {
 
       await new Promise((r) => setTimeout(r, 500));
 
-      router.push("/auth/login");
-      router.refresh();
+      window.location.href = "/auth/login";
     } catch (err) {
       console.error(err);
       setIsLoggingOut(false);
@@ -46,143 +44,96 @@ export default function Page() {
     <div className="min-h-screen flex bg-slate-50">
 
       {/* SIDEBAR */}
-      <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between border-r border-slate-800">
+      <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
 
         {/* TOP */}
         <div>
-
-          {/* BRAND */}
           <div className="h-20 flex items-center px-6 border-b border-slate-800">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-600 rounded-lg text-white">
+              <div className="p-2 bg-emerald-600 rounded-lg text-white">
                 <Package className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-white font-bold text-lg">CB Core</p>
-                <p className="text-xs text-slate-500">
-                  Inventory System
-                </p>
+                <p className="text-white font-bold">CB Warehouse</p>
+                <p className="text-xs text-slate-500">Operations Panel</p>
               </div>
             </div>
           </div>
 
-          {/* MENU */}
           <nav className="p-4 space-y-2">
 
-            <p className="text-xs text-slate-600 uppercase px-3 mb-2">
-              Operations
-            </p>
-
-            {/* DASHBOARD */}
-            <button
-              onClick={() => setActivePage("dashboard")}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                activePage === "dashboard"
-                  ? "bg-slate-800 text-white"
-                  : "hover:bg-slate-800/60"
-              }`}
-            >
-              <Layers className="h-4 w-4 text-blue-400" />
-              Dashboard
+            <button onClick={() => setActivePage("dashboard")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                activePage === "dashboard" ? "bg-slate-800 text-white" : "hover:bg-slate-800/60"
+              }`}>
+              <Layers className="h-4 w-4" />
+              Overview
             </button>
 
-            {/* SHIPPING */}
-            <button
-              onClick={() => setActivePage("sku")}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                activePage === "sku"
-                  ? "bg-slate-800 text-white"
-                  : "hover:bg-slate-800/60"
-              }`}
-            >
-              <Package className="h-4 w-4 text-blue-400" />
-              Intake & SKUs
-            </button>
-            <button
-              onClick={() => setActivePage("shipping")}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                activePage === "shipping"
-                  ? "bg-slate-800 text-white"
-                  : "hover:bg-slate-800/60"
-              }`}
-            >
-              <Truck className="h-4 w-4 text-blue-400" />
-              Shipping Requests
+            <button onClick={() => setActivePage("intake")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                activePage === "intake" ? "bg-slate-800 text-white" : "hover:bg-slate-800/60"
+              }`}>
+              <Package className="h-4 w-4" />
+              Inventory Intake
             </button>
 
-            {/* RETURNS */}
-            <button
-  onClick={() => setActivePage("returns")}
-  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
-    activePage === "returns"
-      ? "bg-slate-800 text-white"
-      : "hover:bg-slate-800/60"
-  }`}
->
-  <Clock className="h-4 w-4 text-blue-400" />
-  Returns & Audits
-</button>
+            <button onClick={() => setActivePage("shipping")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                activePage === "shipping" ? "bg-slate-800 text-white" : "hover:bg-slate-800/60"
+              }`}>
+              <Truck className="h-4 w-4" />
+              Approve Shipping
+            </button>
 
-            <p className="text-xs text-slate-600 uppercase px-3 mt-6 mb-2">
-              Finance
-            </p>
+            <button onClick={() => setActivePage("returns")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                activePage === "returns" ? "bg-slate-800 text-white" : "hover:bg-slate-800/60"
+              }`}>
+              <Clock className="h-4 w-4" />
+              Returns Verification
+            </button>
 
-            {/* BILLING */}
-            <button
-  onClick={() => setActivePage("invoice")}
-  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
-    activePage === "invoice"
-      ? "bg-slate-800 text-white"
-      : "hover:bg-slate-800/60"
-  }`}
->
-  <FileText className="h-4 w-4" />
-  Invoices
-</button>
+            <button onClick={() => setActivePage("billing")}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                activePage === "billing" ? "bg-slate-800 text-white" : "hover:bg-slate-800/60"
+              }`}>
+              <FileText className="h-4 w-4" />
+              Billing Logs
+            </button>
 
           </nav>
         </div>
 
         {/* USER */}
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-              CL
-            </div>
-            <div>
-              <p className="text-sm text-white">Chynell L.</p>
-              <p className="text-xs text-slate-500">Admin</p>
-            </div>
+        <div className="p-4 border-t border-slate-800 flex justify-between">
+          <div>
+            <p className="text-white text-sm">CB Team</p>
+            <p className="text-xs text-slate-500">Warehouse Staff</p>
           </div>
 
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="p-2 hover:bg-slate-800 rounded-lg transition"
-          >
+          <button onClick={handleLogout}>
             {isLoggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin text-rose-400" />
+              <Loader2 className="animate-spin h-4 w-4" />
             ) : (
               <LogOut className="h-4 w-4" />
             )}
           </button>
-
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 p-6 overflow-y-auto">
+      {/* MAIN */}
+      <main className="flex-1 p-6">
 
         {activePage === "dashboard" && <DashboardContent />}
 
+        {activePage === "intake" && <IntakeSKU />}
+
         {activePage === "shipping" && <ShippingRequests />}
 
-         {activePage === "sku" && <IntakeSKU />}
+        {activePage === "returns" && <ReturnsAudits />}
 
-         {activePage === "returns" && <ReturnsAudits />}
-
-         {activePage === "invoice" && <Invoice />}
+        {activePage === "billing" && <Invoice />}
 
       </main>
 

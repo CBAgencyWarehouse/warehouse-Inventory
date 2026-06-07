@@ -12,20 +12,27 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  CLIENT
+  CB
+  ADMIN
+}
+
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
   name        String?
-  password    String?  // انوائٹ کے وقت یہ null ہوگا، رجسٹریشن پر سیٹ ہوگا
-  role        String   @default("CLIENT") // "CLIENT" یا "WAREHOUSE_ADMIN"
+  password    String?
+  role        Role     @default(CLIENT)
   companyName String?
-  isActivated Boolean  @default(false)    // اکاؤنٹ ایکٹیویٹ ہے یا نہیں
+  isActivated Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   otp         String?
   otpExpiry   DateTime?
 
+  inventories Inventory[]
 }
 
 model Invitation {
@@ -34,4 +41,20 @@ model Invitation {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  name        String
+  sku         String
+  bin         String
+  quantity    Int
+  description String?
+  condition   String
+  images      String[] @default([])
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime @default(now())
 }
