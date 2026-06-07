@@ -19,6 +19,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/auth/login") ||
     pathname.startsWith("/auth/signup");
 
+  // 👉 ADD THIS
+  const isVerifyRoute = pathname.startsWith("/verify-otp");
+
   // ===============================
   // PROTECT DASHBOARD ROUTES
   // ===============================
@@ -33,16 +36,12 @@ export async function middleware(request: NextRequest) {
 
       const allowedRoute = roleAccessMap[role];
 
-      // invalid role → logout
       if (!allowedRoute) {
         return NextResponse.redirect(new URL("/auth/login", request.url));
       }
 
-      // 🚫 block access to other dashboards
       if (!pathname.startsWith(allowedRoute)) {
-        return NextResponse.redirect(
-          new URL(allowedRoute, request.url)
-        );
+        return NextResponse.redirect(new URL(allowedRoute, request.url));
       }
 
       return NextResponse.next();
@@ -52,7 +51,23 @@ export async function middleware(request: NextRequest) {
   }
 
   // ===============================
-  // AUTH ROUTE HANDLING
+  // BLOCK VERIFY-OTP IF LOGGED IN
+  // ===============================
+  if (isVerifyRoute && token) {
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const role = payload.role as string;
+
+      return NextResponse.redirect(
+        new URL(roleAccessMap[role] || "/dashboard/client", request.url)
+      );
+    } catch {
+      return NextResponse.next();
+    }
+  }
+
+  // ===============================
+  // AUTH ROUTES (login/signup)
   // ===============================
   if (token && isAuthRoute) {
     try {
@@ -60,7 +75,7 @@ export async function middleware(request: NextRequest) {
       const role = payload.role as string;
 
       return NextResponse.redirect(
-        new URL(roleAccessMap[role] || "/auth/login", request.url)
+        new URL(roleAccessMap[role], request.url)
       );
     } catch {
       return NextResponse.next();
@@ -71,5 +86,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/login", "/auth/signup"],
+  matcher: [
+    "/dashboard/:path*",
+    "/auth/login",
+    "/auth/signup",
+    "/verify-otp",
+  ],
 };
