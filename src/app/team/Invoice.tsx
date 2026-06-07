@@ -11,6 +11,7 @@ type InvoiceItem = {
   status: "Pending" | "Sent" | "Paid";
   date: string;
 };
+// ok
 
 const dummyInvoices: InvoiceItem[] = [
   {
