@@ -1,49 +1,75 @@
-// middleware.ts
-// import { NextResponse } from 'next/server';
-// import type { NextRequest } from 'next/request';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-fallback-super-secret-key-change-this'
-);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+const roleAccessMap: Record<string, string> = {
+  ADMIN: "/dashboard/admin",
+  CB: "/dashboard/team",
+  CLIENT: "/dashboard/client",
+};
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get("auth_token")?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. اگر یوزر لاگ ان نہیں ہے اور ڈیش بورڈ پر جانے کی کوشش کر رہا ہے
-  if (pathname.startsWith('/dashboard')) {
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isAuthRoute =
+    pathname.startsWith("/auth/login") ||
+    pathname.startsWith("/auth/signup");
+
+  // ===============================
+  // PROTECT DASHBOARD ROUTES
+  // ===============================
+  if (isDashboardRoute) {
     if (!token) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
     try {
-      // ٹوکن کی تصدیق کریں
-      await jwtVerify(token, JWT_SECRET);
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const role = payload.role as string;
+
+      const allowedRoute = roleAccessMap[role];
+
+      // invalid role → logout
+      if (!allowedRoute) {
+        return NextResponse.redirect(new URL("/auth/login", request.url));
+      }
+
+      // 🚫 block access to other dashboards
+      if (!pathname.startsWith(allowedRoute)) {
+        return NextResponse.redirect(
+          new URL(allowedRoute, request.url)
+        );
+      }
+
       return NextResponse.next();
-    } catch (err) {
-      // اگر ٹوکن خراب یا ایکسپائر ہے تو لاگ ان پر بھیجیں
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+    } catch {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
     }
   }
 
-  // 2. اگر یوزر پہلے سے لاگ ان ہے اور دوبارہ لاگ ان/سائن اپ پیج کھول رہا ہے
-  if (token && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
+  // ===============================
+  // AUTH ROUTE HANDLING
+  // ===============================
+  if (token && isAuthRoute) {
     try {
-      await jwtVerify(token, JWT_SECRET);
-      // اسے براہ راست ڈیش بورڈ پر بھیج دیں
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } catch (err) {
-      // ٹوکن خراب ہو تو آگے جانے دیں (کوکی اگنور ہو جائے گی)
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const role = payload.role as string;
+
+      return NextResponse.redirect(
+        new URL(roleAccessMap[role] || "/auth/login", request.url)
+      );
+    } catch {
+      return NextResponse.next();
     }
   }
 
   return NextResponse.next();
 }
 
-// کن پیجز پر یہ مڈل ویئر رن ہونا چاہیے
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/login', '/auth/signup'],
+  matcher: ["/dashboard/:path*", "/auth/login", "/auth/signup"],
 };

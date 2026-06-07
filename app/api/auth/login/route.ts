@@ -46,6 +46,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.role === "CB") {
+      return NextResponse.json(
+        { error: "CB Team must use CB warehouse login." },
+        { status: 403 }
+      );
+    }
+
     if (!user.isActivated) {
       return NextResponse.json(
         { error: "Account not activated." },

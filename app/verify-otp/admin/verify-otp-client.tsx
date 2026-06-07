@@ -33,7 +33,7 @@ export default function VerifyOtpClient() {
         return;
       }
 
-      router.push("/dashboard/admin");
+      router.push(data.redirect);
     } catch (err) {
       setError("Server error. Try again.");
     } finally {

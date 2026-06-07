@@ -63,10 +63,12 @@ export async function POST(req: Request) {
       .setExpirationTime("7d")
       .sign(JWT_SECRET);
 
-    const redirectPath =
-      user.role === "ADMIN"
-        ? "/dashboard/admin"
-        : "/dashboard";
+   const redirectPath =
+  user.role === "ADMIN"
+    ? "/dashboard/admin"
+    : user.role === "CB"
+    ? "/dashboard/team"
+    : "/dashboard/client";
 
     const res = NextResponse.json({
       message: "Login successful",

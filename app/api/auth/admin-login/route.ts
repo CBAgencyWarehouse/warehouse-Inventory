@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     // 🚨 ONLY ADMIN
-    if (user.role !== "ADMIN") {
+    if (user.role !== "ADMIN" && user.role !== "CB") {
       return NextResponse.json(
         { error: "Access denied. Admin only." },
         { status: 403 }
