@@ -71,5 +71,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/login", "/auth/signup","/verify-otp"],
+  matcher: ["/dashboard/:path*", "/auth/login", "/auth/signup","/verify-otp/:path*"],
 };
