@@ -42,6 +42,10 @@ type InventoryItem = {
     name: string;
     email: string;
   };
+  client?: {
+    name: string;
+    email: string;
+  };
 };
 
 export default function IntakeSKU() {
