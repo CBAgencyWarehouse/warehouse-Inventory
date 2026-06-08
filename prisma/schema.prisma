@@ -46,10 +46,19 @@ model Inventory {
   createdAt   DateTime @default(now())
   createdBy   User     @relation(fields: [createdById], references: [id])
 
+isDeleted Boolean  @default(false)
+stockStatus StockStatus @default(IN_STOCK)
+
   orderItems  OrderItem[]
 
   
   cartItems   CartItem[]
+}
+
+enum StockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  DISCONTINUED
 }
 
 enum Role {
@@ -68,6 +77,7 @@ enum OrderStatus {
 
 model Order {
   id                  String      @id @default(uuid())
+  orderNumber         Int         @unique @default(autoincrement())
   eventName           String      // Form -> eventName
   eventDate           DateTime    // Form -> eventDate (String to DateTime convert hoga backend par)
   shipToAddress       String      // Form -> shipToAddress

@@ -42,8 +42,11 @@ export async function GET(req: Request) {
       );
     }
 
-    // 2️⃣ Fetch All Items: Sub roles ko master stock pool dikhega
+    // 2️⃣ Fetch All Active Items: Filtering out soft-deleted items
     const inventory = await prisma.inventory.findMany({
+      where: {
+        isDeleted: false, // 👈 Yeh line add ki hai taake master list mein deleted items hide ho jayein
+      },
       orderBy: {
         createdAt: "desc", // Latest items on top
       },

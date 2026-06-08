@@ -111,18 +111,18 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    // 1️⃣ Cookie ya Header se token lekar user nikalenge
     const user = await getUser(req);
 
-    console.log(`🔍 Fetching personal inventory for user: ${user.email} (ID: ${user.id})`);
+    console.log(`🔍 Fetching active personal inventory for user: ${user.email}`);
 
-    // 2️⃣ Prisma query mein 'where' filter lagayein taaki sirf isi user ka data aaye
+    // 🔄 Filter lagaya taake soft-deleted items list mein na aayen
     const inventoryItems = await prisma.inventory.findMany({
       where: {
-        createdById: user.id, // 👈 Sirf wahi items aayenge jahan createdById current user ki ID se match karega
+        createdById: user.id,
+        isDeleted: false, // 👈 Yeh key line add ki hai, ab deleted items call nahi hongi
       },
       orderBy: {
-        createdAt: "desc", // Naya uploaded data sabse upar dikhega
+        createdAt: "desc",
       },
     });
 
@@ -141,6 +141,183 @@ export async function GET(req: Request) {
         success: false,
         message: err.message || "Server Error while fetching inventory",
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const user = await getUser(req);
+
+    // 1️⃣ Check Role Permissions
+    if (!["CB", "ADMIN"].includes(user.role)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    // 2️⃣ URL se item ID nikalein
+    const { searchParams } = new URL(req.url);
+    const itemId = searchParams.get("id");
+
+    if (!itemId) {
+      return NextResponse.json({ success: false, message: "Item ID is required" }, { status: 400 });
+    }
+
+    // 3️⃣ Check karein ke item exist karta hai aur isi user ka hai
+    const existingItem = await prisma.inventory.findFirst({
+      where: { id: itemId, createdById: user.id },
+    });
+
+    if (!existingItem) {
+      return NextResponse.json({ success: false, message: "Inventory item not found or unauthorized" }, { status: 404 });
+    }
+
+    const formData = await req.formData();
+    const name = formData.get("name") as string;
+    const sku = formData.get("sku") as string;
+    const bin = formData.get("bin") as string;
+    const description = formData.get("description") as string;
+    const condition = formData.get("condition") as string;
+    const quantity = formData.get("quantity") ? Number(formData.get("quantity")) : undefined;
+
+    // Pehle se maujood images ko maintain karne ke liye array (agar frontend se structural JSON bhejein)
+    // Ya phir purani images default rakhein agar koi nayi image upload nahi ho rahi
+    let finalImages = [...existingItem.images]; 
+
+    const newImagesFiles = formData.getAll("images") as File[];
+    const uploadedUrls: string[] = [];
+
+    // Agar nayi files aayi hain to unhe upload karein
+    for (const file of newImagesFiles) {
+      if (file.size > 0) {
+        try {
+          const uploadedUrl = await uploadToCloudinary(file, "inventory-items");
+          uploadedUrls.push(uploadedUrl);
+        } catch (uploadError) {
+          console.error("❌ Cloudinary update upload failed:", uploadError);
+          throw new Error("Failed to upload new images.");
+        }
+      }
+    }
+
+    // Agar nayi images upload hui hain, to aap unhe override kar sakte hain ya append kar sakte hain
+    if (uploadedUrls.length > 0) {
+      finalImages = uploadedUrls; // Pura array naye uploads se replace kar rahe hain
+    }
+
+    // 4️⃣ Database update query
+    const updatedInventory = await prisma.inventory.update({
+      where: { id: itemId },
+      data: {
+        name: name || undefined,
+        sku: sku || undefined,
+        bin: bin || undefined,
+        description: description || undefined,
+        condition: condition || undefined,
+        quantity: quantity,
+        images: finalImages,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: updatedInventory }, { status: 200 });
+
+  } catch (err: any) {
+    console.error("❌ PUT INVENTORY ERROR:", err.message);
+    return NextResponse.json(
+      { success: false, message: err.message || "Server Error during update" },
+      { status: 500 }
+    );
+  }
+}
+
+// --- 🗑️ DELETE METHOD: Remove Inventory ---
+// Iske liye aapke Prisma Schema mein `isDeleted Boolean @default(false)` hona zaroori hai.
+export async function DELETE(req: Request) {
+  try {
+    const user = await getUser(req);
+
+    if (!["CB", "ADMIN"].includes(user.role)) {
+      return NextResponse.json({ message: "Forbidden: Access Denied" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const itemId = searchParams.get("id");
+
+    if (!itemId) {
+      return NextResponse.json({ success: false, message: "Item ID is required" }, { status: 400 });
+    }
+
+    const existingItem = await prisma.inventory.findFirst({
+      where: { id: itemId, createdById: user.id },
+    });
+
+    if (!existingItem) {
+      return NextResponse.json({ success: false, message: "Item not found or unauthorized" }, { status: 404 });
+    }
+
+    // 🔄 Soft Delete Action (Foreign key constraint trigger nahi hoga)
+    await prisma.inventory.update({
+      where: { id: itemId },
+      data: { isDeleted: true },
+    });
+
+    return NextResponse.json(
+      { success: true, message: "Inventory item archived and removed from active stock successfully." },
+      { status: 200 }
+    );
+
+  } catch (err: any) {
+    console.error("❌ SOFT DELETE INVENTORY ERROR:", err.message);
+    return NextResponse.json(
+      { success: false, message: err.message || "Server Error during archiving" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const user = await getUser(req);
+
+    if (!["CB", "ADMIN"].includes(user.role)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const itemId = searchParams.get("id");
+
+    if (!itemId) {
+      return NextResponse.json(
+        { success: false, message: "Item ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const existingItem = await prisma.inventory.findFirst({
+      where: { id: itemId, createdById: user.id, isDeleted: false },
+    });
+
+    if (!existingItem) {
+      return NextResponse.json(
+        { success: false, message: "Item not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    const newStatus =
+      existingItem.stockStatus === "IN_STOCK" ? "OUT_OF_STOCK" : "IN_STOCK";
+
+    const updated = await prisma.inventory.update({
+      where: { id: itemId },
+      data: { stockStatus: newStatus,
+        quantity: newStatus === "OUT_OF_STOCK" ? 0 : existingItem.quantity,
+       },
+    });
+
+    return NextResponse.json({ success: true, data: updated }, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, message: err.message || "Server Error" },
       { status: 500 }
     );
   }

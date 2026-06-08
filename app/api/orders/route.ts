@@ -26,6 +26,59 @@ async function getUser(req: Request) {
   return payload as { id: string; role: string; email: string };
 }
 
+// --- 🔄 GET METHOD: Authenticated User Ke Orders Fetch Karne Ke Liye ---
+export async function GET(req: Request) {
+  try {
+    // 1️⃣ Token se current user aur uske ROLE ko extract karein
+    const user = await getUser(req); // payload me { id, role, email } hona chahiye
+
+    // 2️⃣ Role-Based Query Filter Setup karein
+    let queryFilter = {};
+
+    if (user.role === "CLIENT") {
+      // Client ko sirf uske apne orders nazar aayenge
+      queryFilter = { clientId: user.id };
+    } else if (user.role === "CB" || user.role === "ADMIN") {
+      // CB Team Member ya Admin ko system ke SAARE orders review ke liye nazar aayenge
+      queryFilter = {}; // Empty object ka matlab hai no restriction (Fetch all)
+    }
+
+    // 3️⃣ DB Query run karein filtered conditions ke sath
+    const orders = await prisma.order.findMany({
+      where: queryFilter, // 👈 Dynamic filter applied here
+      include: {
+        client: {
+          select: {
+            name: true,
+            companyName: true,
+            email: true,
+          }
+        },
+        items: {
+          include: {
+            inventory: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc", // Newest first
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Orders fetched successfully.",
+      data: orders,
+    });
+
+  } catch (err: any) {
+    console.error("❌ FETCH ORDERS ERROR:", err.message);
+    return NextResponse.json(
+      { success: false, message: err.message || "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
 // --- POST METHOD: Save Order & Items ---
 export async function POST(req: Request) {
   try {
@@ -41,7 +94,7 @@ export async function POST(req: Request) {
       shipToAddress, 
       returnAddress, 
       specialInstructions, 
-      cartItems // Frontend se cart state `cartItems` ki surat me bhejein: { "item-uuid": quantity }
+      cartItems 
     } = body;
 
     // 3️⃣ Basic Payload Validation
@@ -53,16 +106,15 @@ export async function POST(req: Request) {
     }
 
     // 4️⃣ Execute Transaction (Nested Create)
-    // Ek hi dynamic payload me Order aur uske saare items create honge
     const newOrder = await prisma.order.create({
       data: {
         orderNumber,
         eventName,
-        eventDate: new Date(eventDate), // String date to ISO DateTime standard conversion
+        eventDate: new Date(eventDate), 
         shipToAddress,
         returnAddress,
         specialInstructions: specialInstructions || null,
-        clientId: user.id, // Authenticated token se aayi hui ID mapping
+        clientId: user.id, 
         items: {
           create: Object.entries(cartItems).map(([inventoryId, qty]) => ({
             inventoryId: inventoryId,
@@ -71,11 +123,10 @@ export async function POST(req: Request) {
         },
       },
       include: {
-        items: true, // Output configuration me items structure return karne ke liye
+        items: true, 
       },
     });
 
-    // 5️⃣ Return Success Response
     return NextResponse.json(
       { 
         success: true, 

@@ -29,9 +29,15 @@ export async function GET(req: Request) {
     const userId = await getUserIdFromToken(req);
 
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId: userId },
+      where: { 
+        userId: userId,
+        inventory: {
+          isDeleted: false, // 👈 Sirf wahi cart items aayenge jinki inventory active hai
+          stockStatus: "IN_STOCK",
+        }
+      },
       include: {
-        inventory: true, // Frontend inventory rendering logic (Images, names, sku) k liye inclusion
+        inventory: true, 
       },
       orderBy: { createdAt: "desc" },
     });
@@ -42,7 +48,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, message: error.message }, { status });
   }
 }
-
 // -----------------------------------------------------------------
 // 2. POST: Add New Item to Cart or Increment Existing Matrix
 // -----------------------------------------------------------------
@@ -64,6 +69,26 @@ export async function POST(req: Request) {
     if (!targetInventory) {
       return NextResponse.json({ success: false, message: "Inventory item not found" }, { status: 404 });
     }
+
+    if (targetInventory.stockStatus !== "IN_STOCK") {
+  return NextResponse.json(
+    { 
+      success: false, 
+      message: targetInventory.stockStatus === "DISCONTINUED" 
+        ? "This item has been discontinued and cannot be requested." 
+        : "This item is currently out of stock and cannot be added to your request." 
+    },
+    { status: 400 }
+  );
+}
+
+// Existing quantity check bhi add kar lein agar nahi hai
+if (targetInventory.isDeleted) {
+  return NextResponse.json(
+    { success: false, message: "This item is no longer available." },
+    { status: 404 }
+  );
+}
 
     // ⚡ Atomic Upsert process keeping inventory composite index constraints safe
     const cartItem = await prisma.cartItem.upsert({

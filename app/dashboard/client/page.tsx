@@ -38,6 +38,7 @@ interface InventoryItem {
   images: string[];
   createdById: string;
   createdAt: string;
+  stockStatus: "IN_STOCK" | "OUT_OF_STOCK" | "DISCONTINUED";
 }
 
 // 🛒 Naya Database Structure Matcher Interface
@@ -457,6 +458,18 @@ export default function ClientPortal() {
                           <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs border border-slate-200 text-slate-800 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-tight">
                             SKU: {item.sku || "N/A"}
                           </span>
+                          {/* 👇 Out of Stock / Discontinued overlay */}
+{item.stockStatus !== "IN_STOCK" && (
+  <div className="absolute inset-0 bg-slate-900/55 backdrop-blur-[1.5px] flex items-center justify-center z-10">
+    <span className={`text-white text-[11px] font-black px-3 py-1.5 rounded-xl tracking-widest uppercase shadow-lg ${
+      item.stockStatus === "DISCONTINUED" 
+        ? "bg-slate-700" 
+        : "bg-rose-600"
+    }`}>
+      {item.stockStatus === "DISCONTINUED" ? "Discontinued" : "Out of Stock"}
+    </span>
+  </div>
+)}
                         </div>
 
                         {/* CONTENT DETAILS BODY GRID */}
@@ -488,29 +501,38 @@ export default function ClientPortal() {
                           </div>
 
                           {/* Action Controller Systems Connected with DB Handlers */}
-                          {currentCartQty > 0 ? (
-                            <div className="flex items-center justify-between bg-slate-50 p-1 rounded-xl border border-slate-200">
-                              <button onClick={() => removeFromCart(item.id)} className="p-1.5 hover:bg-white text-slate-600 hover:text-rose-600 rounded-lg transition shadow-2xs">
-                                <Minus className="h-3.5 w-3.5" />
-                              </button>
-                              <span className="text-xs font-black text-slate-800">{currentCartQty}</span>
-                              <button 
-                                onClick={() => addToCart(item.id)} 
-                                disabled={currentCartQty >= item.quantity}
-                                className="p-1.5 hover:bg-white text-slate-600 hover:text-indigo-600 rounded-lg transition shadow-2xs disabled:opacity-20"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => addToCart(item.id)}
-                              disabled={item.quantity === 0}
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-2xs"
-                            >
-                              {item.quantity > 0 ? "Add to Event Request" : "Out of Stock"}
-                            </button>
-                          )}
+                          {item.stockStatus !== "IN_STOCK" ? (
+  // Read-only disabled state — client kuch nahi kar sakta
+  <div className={`w-full py-2 rounded-xl text-xs font-bold text-center border ${
+    item.stockStatus === "DISCONTINUED"
+      ? "bg-slate-100 text-slate-400 border-slate-200"
+      : "bg-rose-50 text-rose-400 border-rose-100"
+  }`}>
+    {item.stockStatus === "DISCONTINUED" ? "Discontinued" : "Out of Stock"}
+  </div>
+) : currentCartQty > 0 ? (
+  <div className="flex items-center justify-between bg-slate-50 p-1 rounded-xl border border-slate-200">
+    <button onClick={() => removeFromCart(item.id)} className="p-1.5 hover:bg-white text-slate-600 hover:text-rose-600 rounded-lg transition shadow-2xs">
+      <Minus className="h-3.5 w-3.5" />
+    </button>
+    <span className="text-xs font-black text-slate-800">{currentCartQty}</span>
+    <button 
+      onClick={() => addToCart(item.id)} 
+      disabled={currentCartQty >= item.quantity}
+      className="p-1.5 hover:bg-white text-slate-600 hover:text-indigo-600 rounded-lg transition shadow-2xs disabled:opacity-20"
+    >
+      <Plus className="h-3.5 w-3.5" />
+    </button>
+  </div>
+) : (
+  <button
+    onClick={() => addToCart(item.id)}
+    disabled={item.quantity === 0}
+    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-2xs"
+  >
+    Add to Event Request
+  </button>
+)}
                         </div>
 
                       </div>
