@@ -20,6 +20,9 @@ model User {
   otpExpiry   DateTime?
   role        Role        @default(CLIENT)
   inventories Inventory[]
+  orders      Order[]
+
+  cartItems   CartItem[]
 }
 
 model Invitation {
@@ -42,10 +45,72 @@ model Inventory {
   createdById String
   createdAt   DateTime @default(now())
   createdBy   User     @relation(fields: [createdById], references: [id])
+
+  orderItems  OrderItem[]
+
+  
+  cartItems   CartItem[]
 }
 
 enum Role {
   CLIENT
   CB
   ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id                  String      @id @default(uuid())
+  eventName           String      // Form -> eventName
+  eventDate           DateTime    // Form -> eventDate (String to DateTime convert hoga backend par)
+  shipToAddress       String      // Form -> shipToAddress
+  returnAddress       String      // Form -> returnAddress
+  specialInstructions String?     // Form -> specialInstructions (Optional)
+  status              OrderStatus @default(PENDING)
+  
+  clientId            String
+  client              User        @relation(fields: [clientId], references: [id])
+  items               OrderItem[] // Is order me kaun konse inventory items hain
+  
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+// 🚀 NAYA MODEL: ORDER ITEMS JUNCTION (Cart components matrix)
+model OrderItem {
+  id          String    @id @default(uuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  
+  quantity    Int       // Us item ki ordered quantity mapping
+}
+
+model CartItem {
+  id          String    @id @default(uuid())
+  quantity    Int       @default(1)
+
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // ⚡ Composite Unique constraint: Ek user ek item ko cart me ek hi baar add kar sakega.
+  // Dobara click karne par naya row nahi banega, balkay quantity barh jayegi.
+  @@unique([userId, inventoryId])
+  @@index([userId])
 }
