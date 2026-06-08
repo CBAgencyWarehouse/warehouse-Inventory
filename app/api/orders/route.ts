@@ -56,7 +56,16 @@ export async function GET(req: Request) {
         },
         items: {
           include: {
-            inventory: true,
+            inventory: {
+              include: {
+        client: {
+          select: {
+            name: true,
+            email: true,
+          }
+        }
+      }
+            }
           },
         },
       },

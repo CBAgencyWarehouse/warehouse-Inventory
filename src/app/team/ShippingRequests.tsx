@@ -27,6 +27,11 @@ type RequestType = {
       bin: string;
       condition: string;
       images: string[];
+       client?: {           // 👈 yeh add karo
+    name?: string;
+    email: string;
+    companyName?: string;
+  } | null;
     };
   }[];
 };
@@ -288,7 +293,9 @@ export default function ShippingRequests({ mode = "cb-approve" }) {
                   <p className="text-xs font-extrabold text-slate-500 tracking-wider uppercase">
                     Items Manifest ({req.items?.length || 0})
                   </p>
+                  
                 </div>
+                
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {req.items?.map((item) => {
@@ -297,6 +304,7 @@ export default function ShippingRequests({ mode = "cb-approve" }) {
                     const imageUrl = hasImage ? inv.images[0] : null;
 
                     return (
+                      
                       <div 
                         key={item.id} 
                         className="flex items-center gap-3 p-3 bg-slate-50/40 border border-slate-200 rounded-xl hover:bg-white hover:border-slate-300 transition-all shadow-2xs"
@@ -313,25 +321,37 @@ export default function ShippingRequests({ mode = "cb-approve" }) {
                             <Package className="h-6 w-6 stroke-1 text-slate-400" />
                           )}
                         </div>
+                        
 
                         {/* Inventory Details */}
-                        <div className="min-w-0 flex-1 space-y-0.5">
-                          <p className="text-sm font-bold text-slate-800 truncate" title={inv?.name}>
-                            {inv?.name || "Unknown Item"}
-                          </p>
-                          <p className="text-[11px] text-slate-500 font-mono tracking-tight">
-                            SKU: <span className="font-semibold text-slate-700">{inv?.sku || "N/A"}</span> | Bin: <span className="font-semibold text-slate-700">{inv?.bin || "N/A"}</span>
-                          </p>
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-semibold">
-                              Qty: {item.quantity}
-                            </span>
-                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider">
-                              {inv?.condition || "N/A"}
-                            </span>
-                          </div>
-                        </div>
+                        {/* Inventory Details */}
+<div className="min-w-0 flex-1 space-y-0.5">
+  <p className="text-sm font-bold text-slate-800 truncate" title={inv?.name}>
+    {inv?.name || "Unknown Item"}
+  </p>
+  <p className="text-[11px] text-slate-500 font-mono tracking-tight">
+    SKU: <span className="font-semibold text-slate-700">{inv?.sku || "N/A"}</span> | Bin: <span className="font-semibold text-slate-700">{inv?.bin || "N/A"}</span>
+  </p>
+  <div className="flex items-center justify-between pt-1">
+    <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-semibold">
+      Qty: {item.quantity}
+    </span>
+    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider">
+      {inv?.condition || "N/A"}
+    </span>
+  </div>
+
+  {/* 👇 Flex div ke BAHAR, apni full width mein */}
+  {inv?.client && (
+    <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-100 mt-1 truncate">
+      👤 {inv.client.email}
+      {inv.client.companyName ? ` (${inv.client.companyName})` : ""}
+    </p>
+  )}
+</div>
+                        
                       </div>
+                      
                     );
                   })}
                 </div>

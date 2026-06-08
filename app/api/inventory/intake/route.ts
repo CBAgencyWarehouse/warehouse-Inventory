@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     const description = formData.get("description") as string;
     const condition = formData.get("condition") as string;
     const quantity = Number(formData.get("quantity"));
+    const clientId = formData.get("clientId") as string;
 
 
     const imagesFiles = formData.getAll("images") as File[];
@@ -86,6 +87,7 @@ export async function POST(req: Request) {
         condition,
         images: imageUrls, // 👈 Saved full Cloudinary URLs here
         createdById: user.id,
+        clientId: clientId || null,
       },
     });
 
@@ -113,34 +115,45 @@ export async function GET(req: Request) {
   try {
     const user = await getUser(req);
 
-    console.log(`🔍 Fetching active personal inventory for user: ${user.email}`);
-
-    // 🔄 Filter lagaya taake soft-deleted items list mein na aayen
     const inventoryItems = await prisma.inventory.findMany({
-      where: {
-        createdById: user.id,
-        isDeleted: false, // 👈 Yeh key line add ki hai, ab deleted items call nahi hongi
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  where: {
+    createdById: user.id,
+    isDeleted: false,
+  },
+  select: {
+    id: true,
+    name: true,
+    sku: true,
+    bin: true,
+    quantity: true,
+    condition: true,
+    description: true,
+    images: true,
+    stockStatus: true,
 
-    return NextResponse.json(
-      {
-        success: true,
-        count: inventoryItems.length,
-        data: inventoryItems,
+    createdBy: {
+      select: {
+        name: true,
+        email: true,
       },
-      { status: 200 }
-    );
+    },
+
+    client: {
+      select: {
+        name: true,
+        email: true,
+      },
+    },
+  },
+});
+
+    return NextResponse.json({
+      success: true,
+      data: inventoryItems,
+    });
   } catch (err: any) {
-    console.error("❌ GET INVENTORY ERROR:", err.message);
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message || "Server Error while fetching inventory",
-      },
+      { success: false, message: err.message },
       { status: 500 }
     );
   }

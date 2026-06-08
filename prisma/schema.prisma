@@ -19,7 +19,10 @@ model User {
   otp         String?
   otpExpiry   DateTime?
   role        Role        @default(CLIENT)
-  inventories Inventory[]
+
+  inventories        Inventory[] @relation("CreatedByInventory")
+  clientInventories  Inventory[] @relation("ClientInventory")
+
   orders      Order[]
 
   cartItems   CartItem[]
@@ -42,16 +45,19 @@ model Inventory {
   description String?
   condition   String
   images      String[] @default([])
-  createdById String
-  createdAt   DateTime @default(now())
-  createdBy   User     @relation(fields: [createdById], references: [id])
 
-isDeleted Boolean  @default(false)
-stockStatus StockStatus @default(IN_STOCK)
+  createdById String
+  createdBy   User @relation("CreatedByInventory", fields: [createdById], references: [id])
+
+  clientId    String?
+  client      User? @relation("ClientInventory", fields: [clientId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  isDeleted   Boolean @default(false)
+  stockStatus StockStatus @default(IN_STOCK)
 
   orderItems  OrderItem[]
-
-  
   cartItems   CartItem[]
 }
 

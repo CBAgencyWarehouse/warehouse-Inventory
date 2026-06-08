@@ -38,6 +38,10 @@ type InventoryItem = {
   images: string[];
   createdAt: string;
   stockStatus: "IN_STOCK" | "OUT_OF_STOCK";
+  createdBy?: {
+    name: string;
+    email: string;
+  };
 };
 
 export default function IntakeSKU() {
@@ -81,6 +85,21 @@ export default function IntakeSKU() {
     bin: "",
     images: [],
   });
+
+  const [clientSearch, setClientSearch] = useState("");
+const [clientList, setClientList] = useState<any[]>([]);
+const [selectedClient, setSelectedClient] = useState<any>(null);
+
+const searchClient = async (value: string) => {
+  setClientSearch(value);
+
+  if (value.length < 2) return;
+
+  const res = await fetch(`/api/inventory/search?email=${value}`);
+  const data = await res.json();
+
+  if (data.success) setClientList(data.data);
+};
 
   const getCookie = (name: string) => {
     if (typeof document === "undefined") return null;
@@ -157,6 +176,7 @@ export default function IntakeSKU() {
       formData.append("condition", item.condition);
       formData.append("sku", item.sku.trim());
       formData.append("bin", item.bin.trim());
+      formData.append("clientId", selectedClient?.id || "");
 
       item.images.forEach((img) => {
         formData.append("images", img);
@@ -442,6 +462,45 @@ export default function IntakeSKU() {
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50/30 font-medium"
               />
             </div>
+
+            <div className="bg-white p-4 border border-emerald-100 rounded-xl mb-4 shadow-sm">
+  <label className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+    Client Email Search
+  </label>
+
+  <input
+    value={clientSearch}
+    onChange={(e) => searchClient(e.target.value)}
+    placeholder="Enter client email..."
+    className="w-full border border-emerald-200 text-black focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 p-2 rounded-lg mt-2 outline-none"
+  />
+
+  {clientList.length > 0 && (
+    <div className="mt-2 border border-emerald-100 rounded-lg bg-emerald-50 overflow-hidden">
+      {clientList.map((u) => (
+        <div
+          key={u.id}
+          onClick={() => {
+            setSelectedClient(u);
+            setClientSearch(u.email);
+            setClientList([]);
+          }}
+          className="p-2 cursor-pointer hover:bg-emerald-100 transition-all"
+        >
+          <p className="font-semibold text-slate-800">{u.name}</p>
+          <p className="text-xs text-slate-500">{u.email}</p>
+          <p className="text-[10px] text-emerald-700">ID: {u.id}</p>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {selectedClient && (
+    <div className="mt-2 text-xs font-semibold text-emerald-700">
+      ✓ Selected: {selectedClient.name} ({selectedClient.email})
+    </div>
+  )}
+</div>
           </div>
 
           {/* DESCRIPTION */}
@@ -544,6 +603,7 @@ export default function IntakeSKU() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {inventoryList.map((prod) => (
+                
                 <div
                   key={prod.id}
                   className="border border-slate-100 bg-slate-50/40 rounded-xl p-4 flex gap-4 hover:border-emerald-500/20 hover:bg-white transition-all shadow-sm group relative"
@@ -576,7 +636,9 @@ export default function IntakeSKU() {
                         <Package className="h-8 w-8" />
                       </div>
                     )}
+                    
                   </div>
+                  
 
                   {/* 📋 PRODUCT METADATA */}
                   <div className="flex flex-col justify-between overflow-hidden w-full">
@@ -596,8 +658,11 @@ export default function IntakeSKU() {
                         >
                           {prod.condition}
                         </span>
+                        
                       </div>
-                      
+                      <div className="text-xs text-slate-500 mt-1">
+  Client: {prod.client?.name ?? "No client assigned"} ({prod.client?.email ?? "—"})
+</div>
                       <p className="text-xs font-mono text-slate-400 mt-0.5 tracking-wider">
                         SKU: {prod.sku}
                       </p>

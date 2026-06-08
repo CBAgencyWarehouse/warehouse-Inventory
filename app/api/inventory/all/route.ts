@@ -34,7 +34,6 @@ export async function GET(req: Request) {
   try {
     const user = await getUser(req);
 
-    // 1️⃣ Role Check: Only allowed roles can fetch
     if (!["CLIENT", "CB", "ADMIN"].includes(user.role)) {
       return NextResponse.json(
         { success: false, message: "Forbidden: Access denied" },
@@ -42,14 +41,17 @@ export async function GET(req: Request) {
       );
     }
 
-    // 2️⃣ Fetch All Active Items: Filtering out soft-deleted items
+    let whereClause: any = { isDeleted: false };
+
+    if (user.role === "CLIENT") {
+      whereClause.clientId = user.id;
+    } else if (["CB", "ADMIN"].includes(user.role)) {
+      whereClause.createdById = user.id;
+    }
+
     const inventory = await prisma.inventory.findMany({
-      where: {
-        isDeleted: false, // 👈 Yeh line add ki hai taake master list mein deleted items hide ho jayein
-      },
-      orderBy: {
-        createdAt: "desc", // Latest items on top
-      },
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json({
@@ -61,8 +63,11 @@ export async function GET(req: Request) {
   } catch (err: any) {
     console.error("❌ INVENTORY GET ERROR:", err.message);
 
-    // 3️⃣ Auth Failures Handle (Token missing or expired)
-    if (err.message === "No token found" || err.code === "ERR_JWT_EXPIRED" || err.code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED") {
+    if (
+      err.message === "No token found" ||
+      err.code === "ERR_JWT_EXPIRED" ||
+      err.code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED"
+    ) {
       return NextResponse.json(
         { success: false, message: "Unauthorized: Invalid or expired token" },
         { status: 401 }
@@ -70,10 +75,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message || "Internal Server Error",
-      },
+      { success: false, message: err.message || "Internal Server Error" },
       { status: 500 }
     );
   }
