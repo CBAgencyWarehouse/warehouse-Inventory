@@ -18,11 +18,13 @@ import {
   ChevronRight,
   Layers,
   MapPin,
-  History
+  History,
+  LogOut
 } from "lucide-react";
 
 // Imported Order History Component
 import OrderHistory from "@/src/app/client/orderHistory";
+import { useRouter } from "next/navigation";
 
 // Exact Prisma matching interface representation
 interface InventoryItem {
@@ -60,6 +62,20 @@ export default function ClientPortal() {
   // Appended "history" type state variant
   const [step, setStep] = useState<"browse" | "checkout" | "success" | "history">("browse");
 
+  const router = useRouter();
+
+  const handleLogout = async () => {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    router.push("/auth/login"); // ya "/" jis page pe bhejna ho
+  } catch (err) {
+    console.error("Logout failed", err);
+  }
+};
   // Lightbox Modal States for Multi-Image Support
   const [lightbox, setLightbox] = useState<{ isOpen: boolean; images: string[]; currentIndex: number }>({
     isOpen: false,
@@ -324,6 +340,13 @@ export default function ClientPortal() {
       {/* GLOBAL TOP HEADER */}
       <header className="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-40 shadow-xs">
         <div className="flex items-center gap-3">
+          <button
+  onClick={handleLogout}
+  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition"
+>
+  <LogOut className="h-4 w-4" />
+  Logout
+</button>
           <div className="p-2 bg-indigo-600 rounded-lg text-white"><Package className="h-5 w-5" /></div>
           <div>
             <span className="font-bold text-slate-900 text-base">Experian Logistics Portal</span>
