@@ -23,17 +23,68 @@ model User {
   inventories        Inventory[] @relation("CreatedByInventory")
   clientInventories  Inventory[] @relation("ClientInventory")
 
-  orders      Order[]
+clientProfile ClientProfile?
+  cbProfile     CBProfile?
 
+  orders      Order[]
+   returns Return[]
+   
   cartItems   CartItem[]
 }
 
+model ClientProfile {
+  id          String   @id @default(uuid())
+
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+
+  name        String
+  phone       String?
+  companyName String?
+
+  image       String?   // profile image
+  address     String?
+
+  notes       String?   // admin notes
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CBProfile {
+  id          String   @id @default(uuid())
+
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+
+  name        String
+  phone       String?
+  designation String?   // manager, operator etc
+
+  image       String?
+
+  shiftStart  String?
+  shiftEnd    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Invitation {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  email       String   @unique
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  role        Role     @default(CLIENT)  // ✅ ADD THIS
+
+  name        String?
+  companyName String?
+  phone       String?
+  address     String?
+  notes       String?
+  image       String?
 }
 
 model Inventory {
@@ -59,6 +110,8 @@ model Inventory {
 
   orderItems  OrderItem[]
   cartItems   CartItem[]
+  movements InventoryMovement[]
+  returnItems ReturnItem[]
 }
 
 enum StockStatus {
@@ -94,6 +147,8 @@ model Order {
   clientId            String
   client              User        @relation(fields: [clientId], references: [id])
   items               OrderItem[] // Is order me kaun konse inventory items hain
+
+   returns Return[]
   
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -129,4 +184,70 @@ model CartItem {
   // Dobara click karne par naya row nahi banega, balkay quantity barh jayegi.
   @@unique([userId, inventoryId])
   @@index([userId])
+}
+
+model Return {
+  id        String   @id @default(uuid())
+
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  clientId  String
+  client    User     @relation(fields: [clientId], references: [id])
+
+  status    ReturnStatus @default(PENDING)
+
+  receivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items     ReturnItem[]
+}
+
+model ReturnItem {
+  id          String   @id @default(uuid())
+
+  returnId    String
+  return      Return   @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  quantity    Int
+
+  condition   ReturnCondition @default(OK)
+}
+
+enum ReturnStatus {
+  PENDING
+  RECEIVED
+  VERIFIED
+  COMPLETED
+}
+
+enum ReturnCondition {
+  OK
+  DAMAGED
+  MISSING
+}
+
+model InventoryMovement {
+  id          String @id @default(uuid())
+
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  type        MovementType
+  quantity    Int
+
+  referenceId String? // order or return id
+
+  createdAt   DateTime @default(now())
+}
+
+enum MovementType {
+  OUTGOING
+  RETURN
+  ADJUSTMENT
 }

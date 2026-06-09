@@ -2,105 +2,152 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import nodemailer from "nodemailer";
+import { jwtVerify } from "jose";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+// 🔐 Token extraction
+async function getUserFromToken(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  const cookieHeader = req.headers.get("cookie");
+
+  let token: string | null = null;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  }
+
+  if (!token && cookieHeader) {
+    const match = cookieHeader.match(/auth_token=([^;]+)/);
+    token = match ? match[1] : null;
+  }
+
+  if (!token) throw new Error("Unauthorized");
+
+  const { payload } = await jwtVerify(token, secret);
+  return payload as { id: string; role: string; email: string };
+}
+
+// 🔐 Admin check
+async function requireAdmin(req: Request) {
+  const user = await getUserFromToken(req);
+  if (user.role !== "ADMIN") throw new Error("Forbidden: Admin only");
+  return user;
+}
 
 export async function POST(req: Request) {
-  const { email, name, companyName } = await req.json();
+  try {
+    await requireAdmin(req);
 
-  if (!email) {
-    return NextResponse.json({ error: "Email required" }, { status: 400 });
-  }
+    const formData = await req.formData();
 
-  const existing = await prisma.invitation.findUnique({
-    where: { email },
-  });
+    const email = formData.get("email") as string;
+    const name = formData.get("name") as string;
+    const companyName = formData.get("companyName") as string;
+    const phone = formData.get("phone") as string;
+    const address = formData.get("address") as string;
+    const notes = formData.get("notes") as string;
+    const role = formData.get("role") as string;
+    const imageFile = formData.get("image") as File;
 
-  if (existing) {
+    // validation
+    if (!email || !name) {
+      return NextResponse.json(
+        { error: "Name and Email required" },
+        { status: 400 }
+      );
+    }
+
+    // check user
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 400 }
+      );
+    }
+
+    // check invitation
+    const existingInvitation = await prisma.invitation.findUnique({
+      where: { email },
+    });
+
+    if (existingInvitation) {
+      return NextResponse.json(
+        { error: "Invitation already sent" },
+        { status: 400 }
+      );
+    }
+
+    // 🔥 SAFE ROLE MAP (NO PRISMA ENUM ISSUE)
+    const safeRole =
+      role === "CB" ? "CB" : "CLIENT";
+
+    // ☁️ Cloudinary upload
+    let imageUrl: string | null = null;
+
+    if (imageFile && imageFile.size > 0) {
+      imageUrl = await uploadToCloudinary(imageFile, "profile");
+    }
+
+    // token generate
+    const token = uuid();
+
+    // save invitation
+    await prisma.invitation.create({
+      data: {
+        email,
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        role: safeRole,
+        name,
+        companyName,
+        phone,
+        address,
+        notes,
+        image: imageUrl,
+      },
+    });
+
+    // invite link
+    const link = `${process.env.NEXT_PUBLIC_APP_URL}/auth/register/${token}`;
+
+    // email sender
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Complete Your Registration",
+      html: `
+        <div>
+          <h2>Welcome ${name}</h2>
+          <p>Click below to complete your registration:</p>
+          <a href="${link}">Complete Registration</a>
+        </div>
+      `,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Invitation sent successfully",
+    });
+
+  } catch (err: any) {
     return NextResponse.json(
-      { error: "Invitation already sent" },
-      { status: 400 }
+      {
+        error: err.message || "Server error",
+      },
+      { status: 500 }
     );
   }
-
-  const token = uuid();
-
-  await prisma.invitation.create({
-    data: {
-      email,
-      token,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    },
-  });
-
-  const link = `${process.env.NEXT_PUBLIC_APP_URL}/auth/register/${token}`;
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  await transporter.sendMail({
-  to: email,
-  subject: "Complete Your Registration",
-  html: `
-  <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:30px;">
-    
-    <div style="max-width:520px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
-
-      <!-- Header -->
-      <div style="background:#111827;padding:20px;text-align:center;">
-        <h2 style="color:#ffffff;margin:0;font-size:18px;">
-          Welcome to Our Platform
-        </h2>
-      </div>
-
-      <!-- Body -->
-      <div style="padding:25px;text-align:center;">
-
-        <h3 style="color:#111827;margin-bottom:10px;">
-          Complete Your Registration
-        </h3>
-
-        <p style="color:#6b7280;font-size:14px;line-height:1.5;">
-          Your account has been created by admin.  
-          Please click the button below to set your password and activate your account.
-        </p>
-
-        <!-- Button -->
-        <a href="${link}" 
-          style="
-            display:inline-block;
-            margin-top:20px;
-            padding:12px 20px;
-            background:#111827;
-            color:#ffffff;
-            text-decoration:none;
-            border-radius:8px;
-            font-size:14px;
-            font-weight:600;
-          ">
-          Complete Registration
-        </a>
-
-        <p style="margin-top:25px;font-size:12px;color:#9ca3af;">
-          This link will expire in 24 hours for security reasons.
-        </p>
-
-      </div>
-
-      <!-- Footer -->
-      <div style="background:#f9fafb;padding:12px;text-align:center;font-size:11px;color:#9ca3af;">
-        © 2026 Your Company. All rights reserved.
-      </div>
-
-    </div>
-  </div>
-  `,
-});
-
-  return NextResponse.json({
-    message: "Invitation sent",
-  });
 }

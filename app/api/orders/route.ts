@@ -29,61 +29,41 @@ async function getUser(req: Request) {
 // --- 🔄 GET METHOD: Authenticated User Ke Orders Fetch Karne Ke Liye ---
 export async function GET(req: Request) {
   try {
-    // 1️⃣ Token se current user aur uske ROLE ko extract karein
-    const user = await getUser(req); // payload me { id, role, email } hona chahiye
+    const user = await getUser(req);
 
-    // 2️⃣ Role-Based Query Filter Setup karein
-    let queryFilter = {};
-
-    if (user.role === "CLIENT") {
-      // Client ko sirf uske apne orders nazar aayenge
-      queryFilter = { clientId: user.id };
-    } else if (user.role === "CB" || user.role === "ADMIN") {
-      // CB Team Member ya Admin ko system ke SAARE orders review ke liye nazar aayenge
-      queryFilter = {}; // Empty object ka matlab hai no restriction (Fetch all)
-    }
-
-    // 3️⃣ DB Query run karein filtered conditions ke sath
     const orders = await prisma.order.findMany({
-      where: queryFilter, // 👈 Dynamic filter applied here
-      include: {
-        client: {
-          select: {
-            name: true,
-            companyName: true,
-            email: true,
-          }
+      where: {
+        items: {
+          some: {
+            inventory: {
+              OR: [
+                { createdById: user.id },
+                { clientId: user.id },
+              ],
+            },
+          },
         },
+      },
+      include: {
+        client: true,
         items: {
           include: {
-            inventory: {
-              include: {
-        client: {
-          select: {
-            name: true,
-            email: true,
-          }
-        }
-      }
-            }
+            inventory: true,
           },
         },
       },
       orderBy: {
-        createdAt: "desc", // Newest first
+        createdAt: "desc",
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Orders fetched successfully.",
       data: orders,
     });
-
   } catch (err: any) {
-    console.error("❌ FETCH ORDERS ERROR:", err.message);
     return NextResponse.json(
-      { success: false, message: err.message || "Internal Server Error" },
+      { success: false, message: err.message },
       { status: 500 }
     );
   }

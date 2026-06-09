@@ -10,7 +10,15 @@ import {
   TrendingUp, Box, RotateCcw
 } from "lucide-react";
 import ClientsPanel from "@/src/app/admin/components/client";
-import Dash from "@/src/app/admin/components/dashboard";
+import InventoryList from "@/src/app/admin/components/InventoryList";
+import ShipmentsPanel from "@/src/app/admin/components/ShipmentsPanel";
+// import Dash from "@/src/app/admin/components/dashboard";
+import dynamic from "next/dynamic";
+
+const Dash = dynamic(() => import("@/src/app/admin/components/dashboard"), {
+  ssr: false,
+});
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type NavItem = { label: string; icon: React.ElementType; id: string };
@@ -92,8 +100,9 @@ const colorMap: Record<string, string> = {
   violet:  "bg-violet-50 text-violet-600 border-violet-100",
 };
 
+
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function AdminDashboard() {
+export default function AdminDashboard({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,79 +131,16 @@ export default function AdminDashboard() {
   const renderContent = () => {
     switch (activeNav) {
       case "dashboard":
-        return <Dash />;
+        return <Dash onNavigate={(page) => setActiveNav(page)} />;
       case "clients":
         return <ClientsPanel />;
-      case "inventory":
-        return (
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-slate-500" />
-                <h3 className="text-sm font-bold text-slate-800">Inventory Ledger</h3>
-                <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-semibold">
-                  {INVENTORY.length} SKUs
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 transition-all">
-                  <ArrowDownRight className="h-3 w-3" /> Export
-                </button>
-                <button className="flex items-center gap-1.5 text-xs text-white bg-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-lg transition-all">
-                  <Plus className="h-3 w-3" /> Log Intake
-                </button>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-slate-400 bg-slate-50 border-b border-slate-100">
-                    <th className="px-5 py-3 font-semibold">SKU</th>
-                    <th className="px-3 py-3 font-semibold">Item Name</th>
-                    <th className="px-3 py-3 font-semibold">Qty</th>
-                    <th className="px-3 py-3 font-semibold">Bin</th>
-                    <th className="px-3 py-3 font-semibold">Location</th>
-                    <th className="px-3 py-3 font-semibold">Condition</th>
-                    <th className="px-3 py-3 font-semibold">Last Pulled</th>
-                    <th className="px-3 py-3 font-semibold"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {INVENTORY.map(row => (
-                    <tr key={row.sku} className={`border-b border-slate-50 hover:bg-slate-50/60 transition-all ${row.condition !== "Good" ? "bg-red-50/30" : ""}`}>
-                      <td className="px-5 py-3.5 font-mono text-slate-500">{row.sku}</td>
-                      <td className="px-3 py-3.5 font-semibold text-slate-800">{row.name}</td>
-                      <td className={`px-3 py-3.5 font-bold ${row.qty === 0 ? "text-red-500" : "text-slate-800"}`}>
-                        {row.qty === 0 ? "—" : row.qty}
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded font-mono text-[10px]">{row.bin}</span>
-                      </td>
-                      <td className="px-3 py-3.5 text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className={`h-3 w-3 shrink-0 ${row.location.includes("Dallas") ? "text-blue-400" : "text-emerald-400"}`} />
-                          <span className="truncate max-w-[120px]">{row.location}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold ${conditionStyles[row.condition]}">
-                          {row.condition}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3.5 text-slate-400">{row.lastPulled}</td>
-                      <td className="px-3 py-3.5">
-                        <button className="text-slate-400 hover:text-blue-600 transition-colors">
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        //   uiiu
-        );
+        case "inventory-list":
+  return <InventoryList />;
+  case "shipments":
+  return <ShipmentsPanel />;
+      
+  case "inventory":
+  return <InventoryList />;
       default:
         return (
           <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center text-slate-500">
