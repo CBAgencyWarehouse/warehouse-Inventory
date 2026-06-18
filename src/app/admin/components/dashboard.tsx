@@ -103,7 +103,7 @@ export default function AdminDashboardContent({ onNavigate }: DashboardProps) {
           { title: "Total Inventory Items", value: stats.totalItems, change: "Live stock count", up: true, icon: Box, bg: "bg-blue-50 text-blue-600 border-blue-100" },
           { title: "Active Shipments", value: stats.activeShipments, change: "In active transit", up: true, icon: Truck, bg: "bg-emerald-50 text-emerald-600 border-emerald-100" },
           { title: "Pending Requests", value: stats.pendingRequests, change: "Requires review", up: false, icon: Clock, bg: "bg-amber-50 text-amber-600 border-amber-100" },
-          { title: "Monthly Revenue", value: stats.monthlyRevenue, change: "+8.2% vs last month", up: true, icon: DollarSign, bg: "bg-violet-50 text-violet-600 border-violet-100" },
+          // { title: "Monthly Revenue", value: stats.monthlyRevenue, change: "+8.2% vs last month", up: true, icon: DollarSign, bg: "bg-violet-50 text-violet-600 border-violet-100" },
         ].map((s, i) => {
           const Icon = s.icon;
           return (
@@ -318,7 +318,7 @@ export default function AdminDashboardContent({ onNavigate }: DashboardProps) {
           <DollarSign className="h-4 w-4 text-slate-500" />
           <h3 className="text-sm font-bold text-slate-800">Logistics Cost Reference Sheet</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 blur-sm select-none">
           {[
             { label: "Round-Trip Fee", amount: "$170", note: "Per event — standard" },
             { label: "Extra Labor", amount: "$85/hr", note: "If pulling exceeds 2 hrs" },

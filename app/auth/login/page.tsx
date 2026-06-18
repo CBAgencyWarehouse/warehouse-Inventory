@@ -183,7 +183,20 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-700 block">Password</label>
-                <a href="#" className="text-xs font-medium text-blue-600 hover:underline">Forgot?</a>
+                <button
+  type="button"
+  onClick={async () => {
+    await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    alert("Reset link sent to email");
+  }}
+  className="text-xs text-blue-600 hover:underline"
+>
+  Forgot Password?
+</button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -229,7 +242,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center pt-1 border-t border-slate-100">
+          {/* <div className="text-center pt-1 border-t border-slate-100">
             <p className="text-xs text-slate-500">
               New to the platform?{" "}
               <Link 
@@ -239,7 +252,7 @@ export default function LoginPage() {
                 Activate Account
               </Link>
             </p>
-          </div>
+          </div> */}
 
           {/* ✅ Role ke hisaab se alag notice */}
           {role === 'client' && (

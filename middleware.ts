@@ -68,7 +68,9 @@ export async function middleware(request: NextRequest) {
   // FRONTEND PAGES PROTECTION (DASHBOARD, AUTH, ETC.)
   // ==========================================
   const isDashboardRoute = pathname.startsWith("/dashboard");
-  const isAuthRoute = pathname.startsWith("/auth/login") || pathname.startsWith("/auth/signup");
+  const isAuthRoute = pathname.startsWith("/auth/login")
+  //  || pathname.startsWith("/auth/signup")
+   ;
   const isVerifyRoute = pathname.startsWith("/verify-otp");
 
   if (isDashboardRoute) {
