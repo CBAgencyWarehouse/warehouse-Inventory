@@ -45,8 +45,13 @@ export async function POST(req: Request) {
         pass: process.env.EMAIL_PASS,
       },
     });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-    const resetLink = `http://localhost:3000/reset-password?token=${token}&email=${user.email}`;
+    if (!appUrl) {
+  throw new Error("NEXT_PUBLIC_APP_URL is not defined");
+}
+
+    const resetLink = `${appUrl}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
 
     await transporter.sendMail({
       to: user.email,
