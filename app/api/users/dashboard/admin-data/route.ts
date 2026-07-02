@@ -40,12 +40,11 @@ export async function GET(req: Request) {
     await getUserIdFromToken(req);
 
     // ───── STATS ─────
-    const totalQtyAgg = await prisma.inventory.aggregate({
-      where: { isDeleted: true },
-      _sum: { quantity: true },
-    });
-
-    const totalItems = totalQtyAgg._sum.quantity ?? 0;
+    const totalItems = await prisma.inventory.count({
+  where: {
+    isDeleted: false,
+  },
+});
 
     const activeShipments = await prisma.order.count({
       where: { status: { in: ["APPROVED", "DISPATCHED"] } },
