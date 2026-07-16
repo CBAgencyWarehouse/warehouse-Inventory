@@ -720,6 +720,20 @@ export default function ClientPortal() {
 
       </main>
 
+      <footer className="border-t border-slate-200 bg-white py-4">
+  <div className="text-center text-xs text-slate-500">
+    Developed by{" "}
+    <a
+      href="https://cntlcv.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+    >
+      CNTL C&amp;V
+    </a>
+  </div>
+</footer>
+
       {/* --- PREMIUM GLASSMORPHISM MULTI-IMAGE LIGHTBOX MODAL --- */}
       {lightbox.isOpen && lightbox.images.length > 0 && (
         <div 

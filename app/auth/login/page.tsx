@@ -271,7 +271,22 @@ export default function LoginPage() {
             </div>
           )}
 
+          <div className="mt-8 text-center border-t border-slate-200 pt-4">
+  <p className="text-xs text-slate-500">
+    Developed by{" "}
+    <a
+      href="https://cntlcv.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+    >
+      CNTL C&amp;V
+    </a>
+  </p>
+</div>
+
         </div>
+        
       </div>
 
     </div>
