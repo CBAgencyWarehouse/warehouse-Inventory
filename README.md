@@ -53,12 +53,12 @@
 ```text
 .
 ├── app/
-├── components/
 ├── lib/
 ├── prisma/
 ├── public/
 ├── middleware.ts
 ├── package.json
+├── test1.js
 └── README.md
 ```
 
